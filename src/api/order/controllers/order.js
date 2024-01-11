@@ -13,12 +13,15 @@ module.exports = createCoreController('api::order.order', ({ strapi }) => ({
     // @ts-ignore
     const { products, userName, email } = ctx.request.body;
 
+    // @ts-ignore
+    console.log('body: ', ctx.request.body);
+
     try { 
       const lineItems = await Promise.all(
         products.map(async(product) => {
           const item = await strapi
             .service("api::item.item")
-            .findOne({ id: product.id });
+            .findOne(product.id );
           return {
             price_data: {
               currency: "usd",
@@ -27,9 +30,11 @@ module.exports = createCoreController('api::order.order', ({ strapi }) => ({
               },
               unit_amount: item.price * 100,
             },
-            quantity: product.quantity,}
+            quantity: product.count,}
         })
       );
+
+      console.log('lineItems: ', lineItems);
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -53,6 +58,7 @@ module.exports = createCoreController('api::order.order', ({ strapi }) => ({
 
     } catch (error) {
       ctx.response.status = 500;
+      console.error('strapi error:::', error);
       return { error: { message: "There was a problem creating the charge"} };
     }
   },
